@@ -1,625 +1,910 @@
-
----
-
-## Alternate titles
-
-<div class="fragment"><del>My experience building the Experience Builder experience</del></div>
-<div class="fragment"><del>Are you experienced?</del></div>
-<div class="fragment"><del>Do you want to build an experience?</del></div>
+##
 
 Note:
-- Taking the joke too far
-- Of course a Hendrix reference
-- I'm told this is a frozen reference
+- We're going to look at developer QOL improvements
+- Star ratings are subjective: how much nicer is day-to-day life?
 
 ---
 
-### About me
-
-@larowlan
-
-<img src="./images/avatar2.jpg" alt="avatar" class="img--offscreen" />
-
-Note:
-
-- Drupal development for 16+ years
-- PHP Development for 25 😮
-- Core committer, Security team, you're probably using one of my modules
-- You may not know but FE dev is what I'm excited about - although my last few DS sessions have been FE
-
----
-
-## Session summary
-
-- Goals of Experience Builder (XB)
-- Demo of current state
-- A dive into the internals
-
-Note:
-- So if that's not what you were expecting, it's fine if you want to leave
-
----
-
-## Goals preface
-
-- https://youtu.be/5ViCxc8ksb4
-
-<img src="./images/roll.png" alt="frame" class="img--offscreen fragment fade-in-then-out"/>
-<img src="./images/frame.png" alt="frame" class="img--offscreen fragment fade-in-then-out"/>
-
-Note:
-
-- I'm not going to go into too much detail here. This is a technical session
-- I strongly recommend you watch Lauri's excellent session from DrupalCon Singapore
-- It goes into much more detail
-- This is mandatory watching if you expect you will be using Drupal in 12 months time from now
-- Some of the images I'm using here were taken from Lauri's session - he kindly shared it with me
-
----
-
-## Goals
-
-Drupal CMS epic #2
-
-<blockquote>Make building easier by guiding site builders to success with <span class="underline">common best practices</span> and <span class="underline">state-of-art innovations</span></blockquote>
-
----
-
-### Goals
-
-XB should be a low-code editor for:
-<ul>
-<li class="fragment" data-fragment-index="1">Creating content and pages</li>
-<li class="fragment" data-fragment-index="1">Building components<span class="fragment" data-fragment-index="4">👈️</span></li>
-<li class="fragment" data-fragment-index="1">Managing site design<span class="fragment" data-fragment-index="4">👈️</span></li>
-</ul>
-
-Note:
-
-- So if you're used to something like Paragraphs or Layout Builder you might notice item 2 and 3 on that list are not in that realm
-- These are things we would normally require code for
-- If you've been doing Drupal long enough you might remember a module called Sweaver
-
----
-
-### Foundation built on Components
-
-<img src="./images/image27.png" height="500" alt="components" />
-
-Note:
-
-- So before we saw 'Common best practices' in the Epic
-- I'm sure many of you are building your site with a Component driven approach
-- This might be formally with something like SDC or Pinto
-- You might also be making use of Storybook - something I spoke about at last year's DrupalSouth
-- Nothing is changing on this front. If you're already doing this
-
----
-
-### <span class="underline">State-of-the-art</span><br>innovations
-
-<div class="fragment">🤔 What does that mean exactly?</div>
-
-<img src="./images/roadmap.png" alt="frame" class="img--offscreen fragment fade-in-then-out"/>
-
-Note:
-
-- Not just talking about taking Drupal to a whole new level and piping composer into varnish with real world issue queues
-- We're being very ambitious here
-- We're targeting a UX similar to Figma or Builder.io
-- Drag and drop, WYSIWYG, real-time updates
-- Leaning on modern JavaScript
-- Roadmap includes multi-user
-
----
-
-## Demo time
-
-Note:
-- Note the module is alpha stability
-- Layers, library
-- Preview pane
-- Full page preview
-- Page data (node) edit form
-- Component inputs form
-- Sections
-- Blocks
-- Code editor
-- Review and publish changes
-- Global regions
-
----
-
-## How is this built
-
-* Decoupled with custom API via controllers
-* Model and structure (layout) stored separately (i18n)
-
-<pre class="fragment"><code class="language-json" data-line-numbers="2|3-7|8-18|19-42|50|83-89">{
-  "layout": [
-    {
-      "nodeType": "region",
-      "id": "content",
-      "name": "Content",
-      "components": [
-        {
-          "nodeType": "component",
-          "uuid": "fead8ec9-8615-4c81-be81-7dd39df08319",
-          "type": "sdc.experience_builder.my-hero",
-          "slots": []
-        },
-        {
-          "nodeType": "component",
-          "uuid": "961bc669-4bbb-451e-840f-3693183e9195",
-          "type": "sdc.experience_builder.two_column",
-          "slots": [
-            {
-              "nodeType": "slot",
-              "id": "961bc669-4bbb-451e-840f-3693183e9195\/column_one",
-              "name": "column_one",
-              "components": [
-                {
-                  "nodeType": "component",
-                  "uuid": "f6fb167e-61df-405d-87db-d03550c66b49",
-                  "type": "sdc.experience_builder.image",
-                  "slots": []
-                }
-              ]
-            },
-            {
-              "nodeType": "slot",
-              "id": "961bc669-4bbb-451e-840f-3693183e9195\/column_two",
-              "name": "column_two",
-              "components": [
-                {
-                  "nodeType": "component",
-                  "uuid": "0539890d-f5d6-4273-8a06-4151a4f925c8",
-                  "type": "js.love_count",
-                  "slots": []
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  "model": {
-    "fead8ec9-8615-4c81-be81-7dd39df08319": {
-      "source": {
-        "cta1": {
-          "sourceType": "static:field_item:string",
-          "expression": "\u2139\ufe0estring\u241fvalue"
-        },
-        "cta2": {
-          "sourceType": "static:field_item:string",
-          "expression": "\u2139\ufe0estring\u241fvalue"
-        },
-        "heading": {
-          "sourceType": "static:field_item:string",
-          "expression": "\u2139\ufe0estring\u241fvalue"
-        },
-        "cta1href": {
-          "sourceType": "static:field_item:link",
-          "value": {
-            "uri": "https:\/\/example.com",
-            "options": []
-          },
-          "expression": "\u2139\ufe0elink\u241furi",
-          "sourceTypeSettings": {
-            "instance": {
-              "title": 0
-            }
-          }
-        },
-        "subheading": {
-          "sourceType": "static:field_item:string",
-          "expression": "\u2139\ufe0estring\u241fvalue"
-        }
-      },
-      "resolved": {
-        "cta1": "Adopt now",
-        "cta2": "Book a visit",
-        "heading": "Meet Bobby!",
-        "cta1href": "https:\/\/example.com",
-        "subheading": "Bobby is a good boy with a wicked hairdo. This mane is sure to delight."
-      }
-    },</code></pre>
-
----
-
-### Undo redo
-
-<pre><code data-line-numbers="3-6|7|8-9">{
-  "layoutModel": {
-    "past": [
-        { "layout": [...], "model": {}, initialized: true },
-        { "layout": [...], "model": {}, initialized: true },
-    ],
-    "present": { "layout": [...], "model": {...}, initialized: true }, 
-    "future": [
-        { "layout": [...], "model": {...}, initialized: true },
-    ],
-}
-</code></pre>
-
-Note:
-
-- For page data and the model we make use of undo/redo which means we have a 'present' state but also multiple past and future states
-
----
-
-## What's under the hood?
-
-<div class="twocol">
-<ul>
-<li class="react">React</li>
-<li class="redux">Redux Toolkit</li>
-<li class="redux">RTK Query</li>
-<li class="ts">Typescript</li>
-<li class="vite">Vite</li>
-<li class="swc">SWC (wasm)</li>
-<li class="radix">Radix UI</li>
-<li class="astro">Astro</li>
-<li>...</li>
-</ul>
+## Who am I?
+<div class="two-column wider">
+<div>
+  <img class='avatar' src="/images/avatar2.jpg">
+</div>
+<div>
+<br>
+ @larowlan
+</div>
 </div>
 
 ---
 
-## So do I need to learn all of these 😱?
-
----
-
-## No 😌 <span class="fragment fade-in">but</div>
-
-<div class="fragment fade-in">I believe we're on the cusp of Drupal's <em>Inverse Mullet*</em> phase</div>
-<div class="fragment small">* Inverse mullet - business out back, party up top</div>
+## Who are you?
 
 Note:
-- Drupal 8+ is now a decade old
-- The backend (while there is still some legacy cruft) is very stable
-- Many of us have real world experience with building decoupled things
-- Learning these things won't hurt your career prospects
+- Target audience here is module and theme developers
 
 ---
 
-## Building with XB
+## Hooks and procedural code
 
 Note:
-
-- So if you're using SDC, you've got nothing to do
-- If you're not, you likely need a component source plugin (more on this later)
-
----
-
-## Prop shape matching
-
-<pre>
-  <code class="language-yaml" data-line-numbers="1-29|11-12|16-17|24,26|20-22">name: Heading
-status: stable
-group: Atom/Text
-description: A heading element
-props:
-  type: object
-  required:
-    - text
-    - element
-  properties:
-    text:
-      type: string
-      title: Text
-      description: The heading text.
-      examples: ['A heading element']
-    style:
-      type: string
-      title: Style
-      description: The heading style to use.
-      enum:
-        - primary
-        - secondary
-      examples: [primary, secondary]
-    element:
-      $ref: json-schema-definitions://experience_builder.module/heading-element
-      type: string
-      title: Element
-      description: The HTML element to use.
-      examples: [h1, h2, h3, h4, h5, h6, div]
-  </code>
-</pre>
+- Biggest shift since 8.0: .module and .theme files are both deprecated in D12
+- Will be removed in D13
+- If you maintain a module and want to support D12 and D11 there are tricks
 
 ---
 
-## Yields you
+### Object-oriented hooks
 
-<img src="./images/image51.png" alt="screeny" height="1544"/>
+★★★★★ <!-- .element: class="rating" -->
 
----
-
-## How does this work?
-
-<pre class="fragment"><code class="language-yaml" data-line-numbers="1-66|14-15|44-45|59-60|46-53|40|55|63">uuid: b333695b-d2ac-4484-8e2a-cf7940edad19
-langcode: en
-status: true
-dependencies:
-  module:
-    - options
-label: Heading
-id: sdc.experience_builder.heading
-source: sdc
-category: Atom/Text
-settings:
-  plugin_id: 'experience_builder:heading'
-  prop_field_definitions:
-    element:
-      field_type: list_string
-      field_storage_settings:
-        allowed_values:
-          -
-            value: div
-            label: div
-          -
-            value: h1
-            label: h1
-          -
-            value: h2
-            label: h2
-          -
-            value: h3
-            label: h3
-          -
-            value: h4
-            label: h4
-          -
-            value: h5
-            label: h5
-          -
-            value: h6
-            label: h6
-      field_instance_settings: {  }
-      field_widget: options_select
-      default_value:
-        value: h1
-      expression: ℹ︎list_string␟value
-    style:
-      field_type: list_string
-      field_storage_settings:
-        allowed_values:
-          -
-            value: primary
-            label: primary
-          -
-            value: secondary
-            label: secondary
-      field_instance_settings: {  }
-      field_widget: options_select
-      default_value:
-        value: primary
-      expression: ℹ︎list_string␟value
-    text:
-      field_type: string
-      field_storage_settings: {  }
-      field_instance_settings: {  }
-      field_widget: string_textfield
-      default_value:
-        value: 'A heading element'
-      expression: ℹ︎string␟value
+<div class="two-column">
+<pre class="before" data-since="Drupal 5-11.0"><code class="language-php" data-trim>
+// node.module
+function node_user_cancel($edit, UserInterface $account, $method) {
+  // DO STUFF
+}
 </code></pre>
-
-Note:
-- Components are stored as config entities
-- Each component references a source plugin
-- There's SDC, Code components and Block ATM
-- Future work will add layout (slots/props) and paragraphs (props, maybe slots)
-- Shape matching inspects the props
-- If we can represent the SDC with existing data-types and widgets in core, a component is auto created
-- You can think of a component config entity as being a bit like 'Manage form display' for your 
-- Single directory components, except its automatically created for you if your component is compatible"
-- If not, there's a report telling you why your SDC component isn't compatible
-- The component looks like this
-
----
-
-## Wait so it's Form/Field API? 😕
-
----
-
-## Yes ... but
-
----
-
-## Hyperscriptify™️
-
-<img src="./images/hyperscriptify.png" alt="frame" class="img--offscreen fragment fade-in-then-out"/>
-
-Note:
-
-- This started life as the JSX theme engine on Drupal.org
-- Ended up in XB as 'semicoupled theme'
-- It is the magic sauce
-- This is a session all about it from Benjamin Mullins at Drupalcon Portland
-
----
-
-## How it works
-
-- Separate theme (xb_stark)
-- Semicoupled theme engine
-
-Note:
-
-- This is an implementation detail and is subject to change
-- It's not an API but it is useful info
-
----
-
-## Semicoupled theme
-
-File: radios.html.twig
-<pre>
-<code class="language-json">
-{
-  "props": {
-    "renderChildren": "JSX.Element",
-    "children": "JSX.Element",
-    "attributes":  "object"
+<pre class="after fragment fade-in" data-since="Drupal 11.1+"><code class="language-php" data-trim>
+namespace Drupal\node\Hook;
+use Drupal\Core\Hook\Attribute\Hook;
+class NodeHooks {
+  public function __construct(
+    protected EntityTypeManagerInterface $entityTypeManager,
+  ) {}
+  #[Hook('user_cancel')]
+  public function userCancel(
+    array $edit,
+    UserInterface $account,
+    string $method): void {
+    // DO STUFF
   }
 }
-</code>
-</pre>
-
-Note:
-
-- This is a theme template. Its JSON in TWIG
-- It tells the theme engine how the render array variables map to concepts in React
-
----
-
-## Hyperscriptify™️
-
-<pre>
-<code class="language-html" data-line-numbers="1,11|2-3,9-10|4-8|2"><template data-hyperscriptify>
-  <drupal-form attributes="{&quot;class&quot;:[&quot;component-inputs-form&quot;],&quot;data-form-id&quot;:&quot;component_inputs_form&quot;,&quot;data-drupal-selector&quot;:&quot;component-inputs-form&quot;,&quot;action&quot;:&quot;/xb-field-form/node/1?tree=%7B%22nodeType%22%3A%22component%22%2C%22uuid%22%3A%22dynamic-image-udf7d%22%2C%22type%22%3A%22sdc.experience_builder.image%22%2C%22slots%22%3A%5B%5D%7D&amp;props=%7B%22dynamic-image-udf7d%22%3A%7B%22resolved%22%3A%7B%22image%22%3A%7B%22src%22%3A%22/sites/default/files/2024-12/generateImage_aNOaam.jpeg%22%2C%22alt%22%3A%22At%20decet%20nobis%20nulla%20probo%20singularis%20validus%20vindico.%22%2C%22width%22%3A207%2C%22height%22%3A475%7D%7D%2C%22source%22%3A%7B%22image%22%3A%7B%22sourceType%22%3A%22dynamic%22%2C%22expression%22%3A%22%E2%84%B9%EF%B8%8E%E2%90%9Centity%3Anode%3Aarticle%E2%90%9Dfield_hero%E2%90%9E%E2%90%9F%7Bsrc%E2%86%9Dentity%E2%90%9C%E2%90%9Centity%3Afile%E2%90%9Duri%E2%90%9E%E2%90%9Furl%2Calt%E2%86%A0alt%2Cwidth%E2%86%A0width%2Cheight%E2%86%A0height%7D%22%7D%7D%7D%7D&amp;selected=dynamic-image-udf7d&amp;latestUndoRedoActionId=&amp;ajaxPageState=%7B%22libraries%22%3A%22ckeditor5/internal.drupal.ckeditor5%2Cckeditor5/internal.drupal.ckeditor5.codeBlock%2Cckeditor5/internal.drupal.ckeditor5.emphasis%2Cckeditor5/internal.drupal.ckeditor5.htmlEngine%2Cckeditor5/internal.drupal.ckeditor5.image%2Cckeditor5/internal.drupal.ckeditor5.table%2Ccomment/drupal.comment%2Ccore/ckeditor5.autoformat%2Ccore/ckeditor5.blockquote%2Ccore/ckeditor5.horizontalLine%2Ccore/ckeditor5.link%2Ccore/ckeditor5.list%2Ccore/ckeditor5.pasteFromOffice%2Ccore/ckeditor5.removeFormat%2Ccore/ckeditor5.sourceEditing%2Ccore/drupal.autocomplete%2Ccore/drupal.collapse%2Ccore/drupal.vertical-tabs%2Cexperience_builder/xb-ui%2Cfile/drupal.file%2Cfilter/drupal.filter%2Cmenu_ui/drupal.menu_ui%2Cnode/drupal.node%2Cnode/form%2Cpath/drupal.path%2Ctext/drupal.text%22%2C%22theme%22%3A%22xb_stark%22%2C%22theme_token%22%3A%22XsulWe41qhjCwf0CyulJBlNu832XpRTn77W3m_obYIo%22%7D&quot;,&quot;method&quot;:&quot;dialog&quot;,&quot;id&quot;:&quot;component-inputs-form&quot;,&quot;accept-charset&quot;:&quot;UTF-8&quot;}">
-    <drupal-html-fragment slot="children">
-      <div class="regular-html">
-        <fieldset id="some-fieldset">
-        <!-- ... -->
-        </fieldset>
-      </div>
-    </drupal-html-fragment>
-  </drupal-form>
-</template>
-</code>
-</pre>
-
-Note:
-
-- So we end up with a 'template' tag which the browser doesn't parse
-- Hyperscriptify will turn this into a DOM tree
-- It then walks the tree and finds any custom elements we have matching React components for
-- In this example, `<drupal-html-fragment>` `<drupal-form>` are examples
-- But div and fieldset are not
-- For anything we match, create react elements and JSON.parse the `attributes` attribute as props
-- Regular children (standard HTML) are in the HTML fragment
-- Hyperscriptify gives us an extension of HTML that allows Drupal to send a tree containing a mix of regular HTML and react elements
-
----
-
-## Is this madness?
-
-Note:
-
-- It is working well
-- It even supports AJAX
-- We even have it integrating with Redux
-- The alternative is what Decoupled LB did - which required all widgets and formatters to be rewritten in React
-- Lauri made 'should work with existing widgets' a requirement
-
----
-
-### But I use<br><em>paragraphs</em> or <em>layout builder</em>
-
-What happens to existing sites?
-
----
-
-### The XB Data model 
-
-<div class="box-with-points tall">
-<div class="box fragment">
-<h4>Data model</h4>
-<strong class="split">Model</strong>
-<strong>Slots</strong>
-</div>
-<div class="box fragment">
-<h4>SDC</h4>
-<strong class="split">Props</strong>
-<strong>Slots</strong>
-</div>
-<div class="box fragment">
-<h4>LB - layouts</h4>
-<strong class="split">Config</strong>
-<strong>Regions</strong>
-</div>
-<div class="box fragment">
-<h4>LB - blocks</h4>
-<strong class="split">Fields</strong>
-<strong>❌</strong>
-</div>
-<div class="box fragment">
-<h4>Paragraphs</h4>
-<strong class="split">Fields</strong>
-<strong>Nesting</strong>
-</div>
+</code></pre>
 </div>
 
 Note:
-
-- LB is a subset of the model
-- So is paragraphs
-
----
-
-## In place upgrades
-
-<img src="./images/image57.png" alt="upgrade screeny"/><br>
-*Not yet implemented
-
-Note:
-- We have plans for an upgrade in place approach - chat to me after the session
+- Shout out to my colleague Dan Phin (dpi) - his contrib module Hux was the inspiration for this
+- Available from: before = all versions; after = Drupal 11.1.0
+- Classes in `Drupal\modulename\Hook` are registered as autowired services automatically - constructor injection for free
+- Class and method names are arbitrary; one method can carry several #[Hook] attributes
+- Backwards compat for 10.1-11.0: register the class as a service in services.yml and keep a procedural shim marked #[LegacyHook] that delegates to it
+- From 11.1 the shim is skipped, so one codebase can serve both
+- Some hooks stay procedural (install/update); conditionally defined hooks are not supported
 
 ---
 
-## But I use [my custom thing]
+### Supporting < 11.1
 
-Write a Component Source Plugin
-
-<div class="fragment fade-in"><code>GeneratedFieldExplicitInputUxComponentSourceBase</code></div>
-
-Note:
-
-- auto create these config entities if you can (There is no UI to do it, user requirement)
-- if you write a source plugin you should too
-- e.g. see the example for Code/SDC components
-- If you don't have an existing field UI paradigm (e.g. Paragraphs has manage form/display) you can extend GeneratedFieldExplicitInputUxComponentSourceBase
-- this gives you prop sources, shape matching, widget reuse, transforms
-
----
-
-## Component source plugin
-
-<pre><code class="language-php">
-interface ComponentSourceInterface {
-  public function getReferencedPluginClass(): ?string;
-  public function getComponentDescription(): TranslatableMarkup;
-  public function renderComponent(array $inputs, string $componentUuid): array;
-  public function requiresExplicitInput(): bool;
-  public function getExplicitInput(string $uuid, ComponentTreeItem $item): array;
-  public function hydrateComponent(array $explicit_input): array;
-  public function inputToClientModel(array $explicit_input): array;
-  public function getPluginDefinition(): array;
-  public function getClientSideInfo(Component $component): array;
-  public function buildConfigurationForm(/*...*/): array;
-  public function clientModelToInput(/*...*/): array;
-  public function validateComponentInput(/*...*/): ConstraintViolationListInterface;
-  public function checkRequirements(): void;
+<div class="two-column">
+<pre class="before" data-since="Drupal 10.1-11.0"><code class="language-php" data-trim>
+// node.module
+use Drupal\node\Hook\NodeHooks;
+use Drupal\Core\Hook\Attribute\LegacyHook;
+#[LegacyHook]
+function node_user_cancel($edit, UserInterface $account, $method) {
+  \Drupal::service(NodeHooks::class)->userCancel($edit, $account, $method);
 }
 </code></pre>
-
----
-
-<!-- .slide: data-background-image="images/wordcloud.png" data-background-partial data-background-position="center" -->
-## Join us?
-
-🗨️#experience-builder on drupal.slack.org
+<pre class="after" data-since="Drupal 10.1-11.0"><code class="language-php" data-trim>
+// node.services.yml
+paramaters:
+  node.skip_procedural_hook_scan: true
+services:
+  Drupal\node\Hook\NodeHooks:
+    autowire: true
+</code></pre>
+</div>
 
 Note:
-- As you've seen, there is a real mix of tech here
-- There's lots of opportunities to get involved
+- There's a bit going on here, some of it jumps ahead - we'll come back to some things in this services.yml file
+- If you still need to support D10 (not long left!) this is how
+- You leave the old function but just have it call the service
+- You register the hook class (more on autowire later if that's new to you)
+- Adding the #[LegacyHook] attribute tells Drupal not to register the function as a hook in D11.1+ (ie prevents duplicates)
+- If you have replaced all .module file hooks with objects, you can set this parameter that tells the module handler not to even parse the module file on modern Drupal
 
 ---
 
-### Questions❓
+## A side quest into autowiring
 
-- 🗨️ larowlan #australia-nz / drupal.slack.org
-- Chat with me in the hall
+---
+
+### Service aliases
+
+★★★★★ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-10.0"><code class="language-php" data-trim>
+\Drupal::service('entity_type.manager');
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 10.1+"><code class="language-php" data-trim>
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+\Drupal::service(EntityTypeManagerInterface::class);
+</code></pre>
+</div>
+
+Note:
+- In the last side you may have noticed \Drupal::service(NodeHooks::class)
+- Since 10.1 you don't have to remember magic strings
+- You can instead use class constants (from interfaces) to fetch services from the container
+
+---
+
+### Auto-wiring
+
+★★★★★ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-10.0"><code class="language-yaml" data-trim>
+// mymodule.services.yml
+services:
+  mymodule.some.service:
+    class: Drupal\mymodule\Some\Service
+    arguments:
+     - @entity_type.manager
+     - @cache.default # 👈️ more on this later
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 10.1+"><code class="language-yaml" data-trim>
+// mymodule.services.yml
+services:
+  _defaults:
+    autowire: true
+  Drupal\mymodule\Some\Class: ~
+  # if you need BC use an alias
+  # mymodule.some.service: '@Drupal\mymodule\Some\Service'
+</code></pre>
+</div>
+
+Note:
+- You probably don't need to specify the arguments
+- You can put autowire: true in _defaults for all classes
+- The ~ is null here
+- If you need BC for the old strings you can use an alias
+- You can do this on a per service basis if you're not ready to do it all at once
+
+---
+
+### Auto-wiring cont.
+
+★★★★★ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-10.0"><code class="language-php" data-trim>
+// mymodule.services.yml
+services:
+  mymodule.some.service:
+    class: Drupal\mymodule\Some\Service
+    arguments:
+     - @entity_type.manager
+     - @cache.default # 👈️ Remember this
+// mymodule/src/Some/Service.php
+namespace Drupal\mymodule\Some;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Cache\CacheBackendInterface;
+final class Service {
+  public function __construct(
+    protected readonly EntityTypeManagerInterface $entityTypeManager,
+    // 👇️️Tricky
+    protected readonly CacheBackendInterface $cache,
+)
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 10.1+"><code class="language-php" data-trim>
+// mymodule.services.yml
+services:
+  _defaults:
+    autowire: true
+  Drupal\mymodule\Some\Class: ~
+// mymodule/src/Some/Service.php
+namespace Drupal\mymodule\Some;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Cache\CacheBackendInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+final class Service {
+  public function __construct(
+    protected readonly EntityTypeManagerInterface $entityTypeManager,
+    // 😎 Nice
+    #[Autowire(service: 'cache.default')
+    protected readonly CacheBackendInterface $cache,
+)
+</code></pre>
+</div>
+
+Note:
+- Sometimes you will need to specify the arguments
+- There's a lot of CacheBackendInterface services in core.services.yml
+- Which one did you mean?
+- Use the AutoWire attribute and nominate it _with your code_ not in a random services file
+
+---
+
+### Auto-configuring
+
+★★★★★ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-10.0"><code class="language-yaml" data-trim>
+// mymodule.services.yml
+services:
+  mymodule.some.listener:
+    class: Drupal\mymodule\EventSubscribers\Listener
+    arguments: [...]
+    tags:
+      - { name: event_subscriber }
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 10.1+"><code class="language-yaml" data-trim>
+// mymodule.services.yml
+services:
+  _defaults:
+    autoconfigure: true
+    autowire: true
+  Drupal\mymodule\EventSubscribers\Listener: ~
+</code></pre>
+</div>
+
+Note:
+- No longer need to specify the tags _for certain cases_
+- Unlike autowire you cannot _yet_ do this on a per service basis if you're not ready to do it all at once
+- There is an issue for that - it will move us closer to Symfony's yaml loader
+- Which will mean we can nominate a folder for our services like you can in symfony and not bother with an entry per service 💪
+- If you need BC for the old strings you can use an alias like before
+- You can autoconfigure:
+  - event_subscriber
+  - logger_aware
+  - queue_factory
+  - cache_prewarmable
+  - module_install.uninstall_validator
+- More coming
+
+---
+
+### Autowired plugins
+
+★★★★☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-11.2"><code class="language-php" data-trim>
+class MyBlock extends BlockBase implements ContainerFactoryPluginInterface {
+  public function __construct(
+    array $configuration,
+    $plugin_id, $plugin_definition,
+    protected Connection $database,
+    protected CacheBackendInterface $cache,
+    ) {
+    parent::__construct($configuration, $plugin_id,
+     $plugin_definition);
+  }
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration, $plugin_id,
+      $plugin_definition, $container->get('database'),
+      $container->get('cache.default')
+    );
+  }
+}
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 11.3+"><code class="language-php" data-trim>
+class MyBlock extends BlockBase {
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    protected Connection $database,
+    #[Autowire(service: 'cache.default')
+    protected CacheBackendInterface $cache,
+  ) {
+    parent::__construct(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+    );
+  }
+}
+</code></pre>
+</div>
+
+Note:
+- Ignore the weird line breaks here, added them to get this to fit on the slide
+- Available from: after = Drupal 11.3.0
+- Uses AutowiredInstanceTrait::createInstanceAutowired() under the hood
+- Same #[AutoWire] if you need it
+
+---
+
+### Autowired controllers
+
+★★★★★ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-10.1"><code class="language-php" data-trim>
+class MyController extends ControllerBase {
+  public function __construct(
+      protected Connection $database,
+      protected CacheBackendInterface $cache,
+  ) {}
+  public static function create(
+    ContainerInterface $container
+  ) {
+    return new static(
+      $container->get('database'),
+      $container->get('cache.default'),
+    );
+  }
+}
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 10.2+"><code class="language-php" data-trim>
+class MyController extends ControllerBase {
+  public function __construct(
+    protected Connection $database,
+    #[Autowire(service: 'cache.default')]
+    protected CacheBackendInterface $cache,
+  ) {}
+}
+</code></pre>
+</div>
+
+Note:
+- Available from: after = Drupal 10.2.0
+- There is an active issue to also support autowiring in methods like Symfony - so you get the services as arguments instead of class properties
+
+---
+
+## .. back to hooks
+
+---
+
+### Hook ordering
+
+★★★★☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 7+"><code class="language-php" data-trim>
+function mymodule_module_implements_alter(&amp;$implementations, $hook) {
+  if ($hook === 'entity_type_alter') {
+    $group = $implementations['mymodule'];
+    unset($implementations['mymodule']);
+    $implementations['mymodule'] = $group;
+  }
+}
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 11.2+"><code class="language-php" data-trim>
+use Drupal\Core\Hook\Order\Order;
+
+#[Hook('entity_type_alter', order: Order::Last)]
+public function entityTypeAlter(array &amp;$entity_types): void {
+  // ...
+}
+</code></pre>
+</div>
+
+Note:
+- Alright so lets go back to OO hooks
+- Available from: after = Drupal 11.2.0
+- Issue #3485896; CR https://www.drupal.org/node/3493962 "Hook implementations can be ordered with an order parameter"
+- Order::First / Order::Last, plus OrderBefore / OrderAfter for relative ordering against another module or class+method
+- hook_module_implements_alter now needs #[LegacyModuleImplementsAlter] (CR 3496788)
+- Core example: content_translation ContentTranslationHooks uses order: Order::Last
+
+---
+
+### Alter other modules' hooks
+
+★★★☆☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 7+"><code class="language-php" data-trim>
+function mymodule_module_implements_alter(&amp;$implementations, $hook) {
+  if ($hook === 'help') {
+    unset($implementations['layout_builder']);
+  }
+}
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 11.2+"><code class="language-php" data-trim>
+use Drupal\Core\Hook\Attribute\RemoveHook;
+use Drupal\layout_builder\Hook\LayoutBuilderHooks;
+
+#[RemoveHook(
+  'help',
+  class: LayoutBuilderHooks::class,
+  method: 'help',
+)]
+</code></pre>
+</div>
+
+Note:
+- Available from: after = Drupal 11.2.0
+- CRs: #[RemoveHook] https://www.drupal.org/node/3496786, #[ReOrderHook] https://www.drupal.org/node/3497308
+- Real example in core: navigation module NavigationHooks removes the layout_builder help implementation
+- Bug fix worth knowing: #3536470, #[ReOrderHook] targeting a hook with no implementations used to throw a TypeError (11.4)
+
+---
+
+### Preprocess
+
+★★★★☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 7+"><code class="language-php" data-trim>
+// mymodule.module
+function mymodule_preprocess_block(array &amp;$variables): void {
+  $variables['attributes']['class'][] = 'my-block';
+}
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 11.2+"><code class="language-php" data-trim>
+#[Hook('preprocess_block')]
+public function preprocessBlock(array &amp;$variables): void {
+  $variables['attributes']['class'][] = 'my-block';
+}
+</code></pre>
+</div>
+
+Note:
+- Available from: after = Drupal 11.2.0
+- Issue #3495943; CR https://www.drupal.org/node/3496491 "Preprocess functions in modules now support object-oriented implementations"
+- This is what finally lets a module drop its .module file entirely
+- Related: template_preprocess_HOOK functions are now callbacks defined in the theme hook (CR 3504125)
+
+---
+
+## .. not the Drupal you recognize?https://uqits.atlassian.net/browse/ITSADSSD-72448
+
+---
+
+### Procedural .module code is going away
+
+★★★★☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<div>
+<pre class="before" data-since="Drupal 8-11"><code class="language-php" data-trim>
+// mymodule.module
+function mymodule_do_thing(NodeInterface $node) {
+  // helper function loaded via .module
+}
+function mymodule_node_presave($node) {
+  mymodule_do_thing($node);
+}
+</code></pre>
+</div>
+<div>
+<pre class="after fragment fade-in" data-since="Drupal 11.1+"><code class="language-php" data-trim>
+class MymoduleHooks {
+  #[Hook('node_presave')]
+  public function nodePresave(NodeInterface $node): void {
+    $this-&gt;doThing($node);
+  }
+  protected function doThing(NodeInterface $node): void {
+    // moved onto the hook class / a service
+  }
+}
+</code></pre>
+</div>
+</div>
+
+Note:
+- Available from: after = Drupal 11.1.0 (hook classes); core conversion of procedural helpers ran through 11.2-12.0
+- Core is deprecating module-level functions module by module
+- And .inc etc files going away too
+- Part of the include-file modernisation initiative #3097045
+
+---
+
+### Goodbye .theme files
+
+★★★☆☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<div>
+<pre class="before" data-since="Drupal 8-11.4"><code class="language-php" data-trim>
+// mytheme.theme
+function mytheme_preprocess_node(array &amp;$variables): void {
+  // ...
+}
+function mytheme_form_system_theme_settings_alter(&amp;$form, $form_state) {
+  // ...
+}
+</code></pre>
+</div>
+<div>
+<pre class="after fragment fade-in" data-since="Drupal 11.3+ (deprecation: 11.5 / 12.0)"><code class="language-php" data-trim>
+namespace Drupal\mytheme\Hook;
+class MythemeHooks {
+  #[Hook('preprocess_node')]
+  public function preprocessNode(array &amp;$variables): void {
+    // ...
+  }
+  #[Hook('form_system_theme_settings_alter')]
+  public function themeSettingsAlter(array &amp;$form, FormStateInterface $form_state): void {
+    // ...
+  }
+}
+</code></pre>
+</div>
+</div>
+
+Note:
+- Available from: OOP hooks in themes = Drupal 11.3.0; .theme deprecated in 11.5.0 and 12.0.0, autoloading removed in 13
+- "Magic autoloading of .theme files can be the source of some very hard to find bugs"
+- Need to keep the .theme for older Drupal? Mark the functions with #[ExtensionFileIsConverted] to silence the deprecation (the attribute class is Drupal\Core\Hook\Attribute\ExtensionFileIsConverted).
+- A rector rule and DDEV script exist for conversion
+- Added bonus of this is src folder in themes is now autoloaded - not just when its the active theme - so you can reliably put OO code in there
+
+---
+
+## Routing, forms and services
+
+Note:
+- Fewer YAML files, less create() boilerplate
+
+---
+
+### Routes via attributes
+
+★★★★★ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8+"><code class="language-yaml" data-trim>
+# mymodule.routing.yml
+system.401:
+  path: '/system/401'
+  defaults:
+    _controller: '\Drupal\system\Controller\Http4xxController::on401'
+    _title: 'Unauthorized'
+  requirements:
+    _access: 'TRUE'
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 11.4+/12.0*"><code class="language-php" data-trim>
+// src/Controller/Http4xxController.php
+use Drupal\Core\Routing\Attribute\Route;
+#[Route(
+  path: '/system/401',
+  name: 'system.401',
+  title: new TranslatableMarkup('Unauthorized'), // * 12.0
+  // _defaults: ['title' => ...] // * 11.4
+  requirements: ['_access' =&gt; 'TRUE'],
+)]
+public function on401() {
+  return ['#markup' =&gt; $this-&gt;t('Log in to access this page.')];
+}
+</code></pre>
+</div>
+
+Note:
+- Available from: after = Drupal 11.4.0
+- Controller must live in the module's Controller namespace to be discovered; route names are required on method-level attributes
+- Class-level #[Route] sets defaults for all methods; invokable controllers work with a class-only attribute
+- Translatable strings need an explicit TranslatableMarkup
+- note:tt
+- Core is converting its own routing.yml files module by module (system, user, block, views ...)
+
+---
+
+### Form routes via attributes
+
+★★★★☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8+"><code class="language-yaml" data-trim>
+user.role.settings:
+  path: '/admin/people/role-settings'
+  defaults:
+    _form: '\Drupal\user\Form\RoleSettingsForm'
+    _title: 'Role settings'
+  requirements:
+    _permission: 'administer permissions'
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 12.0"><code class="language-php" data-trim>
+#[Route(
+  path: '/admin/people/role-settings',
+  name: 'user.role.settings',
+  requirements: ['_permission' =&gt; 'administer permissions'],
+  title: new TranslatableMarkup('Role settings'),
+)]
+class RoleSettingsForm extends FormBase {
+  // ...
+}
+</code></pre>
+</div>
+
+Note:
+- Available from: after = committed 2026-07-01 to main (12.0.0-alpha1) and 11.x; exact 11.x release to be confirmed
+- Same #[Route] attribute; a class implementing FormInterface automatically gets _form set
+- Attribute goes on the class only (method-level attributes ignored on forms); multiple #[Route] attributes allowed
+- Controller discovery issue to be aware of: #3600697 array handling for JSON:API contrib
+
+---
+
+### Batch callbacks as services
+
+★★★☆☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<div><pre class="before" data-since="Drupal 8-11.2"><code class="language-php" data-trim>
+// mymodule.module (or file: key pointing to an .inc)
+function mymodule_process_item($item, array &amp;$context) {
+  // ...
+}
+$batch = (new BatchBuilder ())
+  -&gt;addOperation ('mymodule_process_item', [$item])
+  -&gt;setFile ($path_to_inc);
+</code></pre></div>
+<div><pre class="after fragment fade-in" data-since="Drupal 11.3+"><code class="language-php" data-trim>
+$batch = (new BatchBuilder ())
+  -&gt;addOperation ('mymodule.batch:processItem', [$item])
+  -&gt;setFinishCallback ([MyBatch::class, 'finished']);
+class MyBatch {
+  public function processItem ($item, array &amp;$context) {
+  // ...
+  }
+}
+</code></pre></div>
+</div>
+
+Note:
+- Available from: after = Drupal 11.3.0
+- "Batch api callbacks now support callables supported by the CallableResolver"
+- service_id:method and Class::method forms; no more need for functions in .module/.inc files; failures now throw instead of being swallowed
+- Form callbacks got the same treatment: #3536726 (11.3), #[value_callback] #3616645
+- Core's own locale batch callbacks converted: #3581303
+
+---
+
+## Plugins and entities
+
+Note:
+- Annotations (Doctrine) are on the way out, attributes are native PHP
+
+---
+
+### Plugins via attributes
+
+★★★★★ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-11"><code class="language-php" data-trim>
+/**
+ * Provides a block to display 'Site branding' elements.
+ *
+ * @Block(
+ *   id = "system_branding_block",
+ *   admin_label = @Translation("Site branding"),
+ * )
+ */
+class SystemBrandingBlock extends BlockBase {
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 10.2+"><code class="language-php" data-trim>
+use Drupal\Core\Block\Attribute\Block;
+/**
+ * Provides a block to display 'Site branding' elements.
+ */
+#[Block(
+  id: "system_branding_block",
+  admin_label: new TranslatableMarkup("Site branding"),
+)]
+class SystemBrandingBlock extends BlockBase {
+</code></pre>
+</div>
+
+Note:
+- Available from: after = Drupal 10.2.0; all core plugin types support attributes from 11.2
+- CR https://www.drupal.org/node/3395575 "Plugin implementations should use PHP attributes instead of annotations"
+- Annotation-only plugin types deprecated for removal in 12.0, annotation plugin implementations in 13.0 (#3265945)
+- Syntax tips: `:` instead of `=`, `new` for objects, @Translation becomes new TranslatableMarkup()
+- Plugin managers must support attribute discovery from now on (#3577900, main)
+- Hundreds of "Convert X plugin discovery to attributes" issues, mostly 2024: field types, formatters, migrate, views, layouts, CKEditor5 ...
+
+---
+
+### Entity types via attributes
+
+★★★☆☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-11.1"><code class="language-php" data-trim>
+/**
+ * @ContentEntityType(
+ *   id = "node",
+ *   label = @Translation("Content"),
+ *   entity_keys = {
+ *     "id" = "nid",
+ *     "revision" = "vid",
+ *   },
+ * )
+ */
+class Node extends EditorialContentEntityBase {
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 11.2+"><code class="language-php" data-trim>
+#[ContentEntityType(
+  id: 'node',
+  label: new TranslatableMarkup('Content'),
+  entity_keys: [
+    'id' =&gt; 'nid',
+    'revision' =&gt; 'vid',
+  ],
+)]
+class Node extends EditorialContentEntityBase {
+</code></pre>
+</div>
+
+Note:
+- Available from: after = Drupal 11.2.0
+- Plugin definition is unchanged once discovered - purely an authoring improvement
+- IDE autocomplete and static analysis now work on entity type definitions
+
+---
+
+### Bundle classes via attributes
+
+★★★★☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 9.3-11.3"><code class="language-php" data-trim>
+function mymodule_entity_bundle_info_alter(array &amp;$bundles): void {
+  $bundles['node']['article']['class'] = Article::class;
+}
+class Article extends Node {}
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 11.4+"><code class="language-php" data-trim>
+use Drupal\Core\Entity\Attribute\Bundle;
+#[Bundle(
+  entityType: 'node',
+  bundle: 'article',
+  label: new TranslatableMarkup('Article'),
+)]
+class Article extends Node {}
+</code></pre>
+</div>
+
+Note:
+- Available from: after = Drupal 11.4.0 (hook-based bundle classes since 9.3) if you don't know what these are - worth your time to investigate - per node type/vocabulary entity classes - not just Node or Term, put your own logic in them
+- Treated as derivatives of the entity type plugin, so existing discovery is reused
+- Only for entity types that have a bundle entity type; code-only bundles are silently ignored
+- Last discovered wins; use hook_entity_bundle_info_alter() to override
+
+---
+
+## Data and config
+
+Note:
+- Value objects instead of nested arrays
+
+---
+
+### Schema definitions
+
+★★★☆☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 7-11.4"><code class="language-php" data-trim>
+function comment_schema(): array {
+  $schema['comment_entity_statistics'] = [
+    'fields' =&gt; [
+      'entity_type' =&gt; [
+        'type' =&gt; 'varchar_ascii',
+        'not null' =&gt; TRUE,
+        'default' =&gt; 'node',
+        'length' =&gt; EntityTypeInterface::ID_MAX_LENGTH,
+      ],
+    ],
+  ];
+  return $schema;
+}
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 11.5+ / 12.0"><code class="language-php" data-trim>
+function comment_schema(): Schema {
+  $tables[] = new Table(
+    name: 'comment_entity_statistics',
+    columns: [
+      Column::varcharAscii(
+        name: 'entity_type',
+        length: EntityTypeInterface::ID_MAX_LENGTH,
+        notNull: TRUE,
+        default: new StringValue('node'),
+      ),
+    ],
+  );
+  return new Schema(SchemaDefinitionType::Module, 'comment', $tables);
+}
+</code></pre>
+</div>
+
+Note:
+- Available from: after = Drupal 11.5.0 and 12.0.0
+- Immutable value objects in Drupal\Core\Database\SchemaDefinition: Schema, Table, Column, ColumnType, PrimaryKey, Index, ForeignKey ...
+- Array form still converted transparently - migrate gradually
+- Core modules being converted
+- Longer term: driver-specific features such as GIN/GIST indexes
+
+---
+
+## Honourable mentions
+
+Note:
+- Not strictly "code you write every day", but they change how you build sites
+
+---
+
+### Recipes in install profiles
+
+★★★★☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 10.3-11.4"><code class="language-yaml" data-trim>
+# mysite.info.yml
+type: profile
+name: My site
+install:
+  - node
+  - views
+  - mymodule
+# plus a hook_install() that
+# creates content types and config
+</code></pre>
+<pre class="after fragment fade-in" data-since="Drupal 11.5+"><code class="language-yaml" data-trim>
+# mysite.info.yml
+type: profile
+name: My site
+recipes:
+  - some/recipe/mysite_content_types
+  - some/recipe/mysite_editor_roles
+</code></pre>
+</div>
+
+Note:
+- Available from: recipes = Drupal 10.3.0; `recipes` key in profile info.yml = 11.5.0 (merged 2026-07-21)
+- Issue #3605549; CR https://www.drupal.org/node/3612237
+- Recipes run after modules are installed, appended to the same batch
+- Also: recipe discovery helper class (#3446354, main), profiles apply recipes while Standard/Umami are being slimmed down onto recipes
+
+---
+
+### Kernel tests with their own routes
+
+★★★☆☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-11.x"><code class="language-php" data-trim>
+// modules/mymodule_test/mymodule_test.routing.yml
+mymodule_test.page:
+  path: '/mymodule-test'
+  defaults:
+    _controller: '\Drupal\mymodule_test\Controller\TestController::page'
+  requirements:
+    _access: 'TRUE'
+// plus a whole test module
+</code></pre>
+<pre class="after fragment fade-in" data-since="11.5 / 12.0"><code class="language-php" data-trim>
+class MyKernelTest extends KernelTestBase {
+  #[Route(path: '/mymodule-test', name: 'mymodule_test.page', requirements: ['_access' =&gt; 'TRUE'])]
+  public function page(): array {
+    return ['#markup' =&gt; 'hello'];
+  }
+  public function testPage(): void {
+    $this-&gt;drupalGet('/mymodule-test');
+  }
+}
+</code></pre>
+</div>
+
+Note:
+- Available from: 11.5/12.0
+- Issue #3586832; CR https://www.drupal.org/node/3605544 "Kernel test classes can define their own routes using the Route attribute"
+- Builds on route attributes (#3311365) and drupalGet() in kernel tests (#3390193)
+- Related: functional tests being converted to kernel tests across core for speed
+
+---
+
+# RedundantFormTraitThing
+
+#config_target
+validation constraints
+
+---
+
+# share environment
+
+---
+
+## Thanks - questions?
+
