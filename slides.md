@@ -89,7 +89,7 @@ function node_user_cancel($edit, UserInterface $account, $method) {
 </code></pre>
 <pre class="after" data-since="Drupal 10.1-11.0"><code class="language-php" data-trim>
 // node.services.yml
-paramaters:
+parameters:
   node.skip_procedural_hook_scan: true
 services:
   Drupal\node\Hook\NodeHooks:
@@ -129,6 +129,7 @@ Note:
 - In the last side you may have noticed \Drupal::service(NodeHooks::class)
 - Since 10.1 you don't have to remember magic strings
 - You can instead use class constants (from interfaces) to fetch services from the container
+- You also get chaining in ide on \Drupal::service and $this->container
 
 ---
 
@@ -151,7 +152,7 @@ services:
 services:
   _defaults:
     autowire: true
-  Drupal\mymodule\Some\Class: ~
+  Drupal\mymodule\Some\Service: ~
   # if you need BC use an alias
   # mymodule.some.service: '@Drupal\mymodule\Some\Service'
 </code></pre>
@@ -443,11 +444,11 @@ Note:
 - Available from: after = Drupal 11.2.0
 - Issue #3495943; CR https://www.drupal.org/node/3496491 "Preprocess functions in modules now support object-oriented implementations"
 - This is what finally lets a module drop its .module file entirely
-- Related: template_preprocess_HOOK functions are now callbacks defined in the theme hook (CR 3504125)
+- Related: template_preprocess_HOOK functions are now callbacks defined in the theme hook (CR 3504125) - initial preprocess
 
 ---
 
-## .. not the Drupal you recognize?https://uqits.atlassian.net/browse/ITSADSSD-72448
+## .. not the Drupal you recognize?
 
 ---
 
@@ -532,10 +533,10 @@ Note:
 
 ---
 
-## Routing, forms and services
+## Routing & forms
 
 Note:
-- Fewer YAML files, less create() boilerplate
+- Fewer YAML files, co-located code
 
 ---
 
@@ -804,7 +805,11 @@ function comment_schema(): Schema {
       ),
     ],
   );
-  return new Schema(SchemaDefinitionType::Module, 'comment', $tables);
+  return new Schema(
+    SchemaDefinitionType::Module,
+   'comment',
+   $tables
+  );
 }
 </code></pre>
 </div>
@@ -815,6 +820,248 @@ Note:
 - Array form still converted transparently - migrate gradually
 - Core modules being converted
 - Longer term: driver-specific features such as GIN/GIST indexes
+
+---
+
+### Config forms: #config_target
+
+★★★★★ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<div><pre class="before" data-since="Drupal 8-10.1"><code class="language-php" data-trim>
+class SearchModeConfigForm extends ConfigFormBase {
+  protected function getEditableConfigNames() {
+    return ['mymodule.settings'];
+  }
+  public function buildForm(array $form, FormStateInterface $form_state) {
+    $config = $this-&gt;config('mymodule.settings');
+    $form['decay_enabled'] = [
+      '#type' =&gt; 'checkbox',
+      '#title' =&gt; $this-&gt;t('Enable decay scoring'),
+      '#default_value' =&gt; $config-&gt;get('decay_enabled'),
+    ];
+    return parent::buildForm($form, $form_state);
+  }
+  public function submitForm(array &amp;$form, FormStateInterface $form_state) {
+    $this-&gt;config('mymodule.settings')
+      -&gt;set('decay_enabled', $form_state-&gt;getValue('decay_enabled'))
+      -&gt;save();
+    parent::submitForm($form, $form_state);
+  }
+}
+</code></pre></div>
+<div><pre class="after fragment fade-in" data-since="Drupal 10.2+"><code class="language-php" data-trim>
+class SearchModeConfigForm extends ConfigFormBase {
+  use RedundantEditableConfigNamesTrait;
+  public function buildForm(array $form, FormStateInterface $form_state) {
+    $form['decay_enabled'] = [
+      '#type' =&gt; 'checkbox',
+      '#title' =&gt; $this-&gt;t('Enable decay scoring'),
+      '#config_target' =&gt; 'mymodule.settings:decay_enabled',
+    ];
+    return parent::buildForm($form, $form_state);
+  }
+}
+</code></pre></div>
+</div>
+
+Note:
+- Available from: Drupal 10.2.0 (committed to 11.x and backported to 10.2.x on 2023-11-02)
+- Issue #3382510 "Introduce a new #config_target Form API property to make it super simple to use validation constraints on simple config forms"; change record https://www.drupal.org/node/3373502
+- Format is `config_name:property.path`. The element's default value is loaded from config and the submitted value is saved back to the same property, so no `#default_value` and no `submitForm()` for simple fields
+- Real core conversion: CronForm (#3566768) deleted its hand-rolled constructor, `#default_value` and submit handler
+- Example form is from the contrib module mymodule (SearchModeConfigForm); the "before" is the pre-10.2 equivalent written out by hand, so say so if asked
+
+---
+
+### No more getEditableConfigNames()
+
+★★★☆☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<div><pre class="before" data-since="Drupal 8-10.1"><code class="language-php" data-trim>
+class SynonymsSettingsForm extends ConfigFormBase {
+  protected function getEditableConfigNames() {
+    return ['mymodule.settings'];
+  }
+}
+</code></pre></div>
+<div><pre class="after fragment fade-in" data-since="Drupal 10.2+"><code class="language-php" data-trim>
+use Drupal\Core\Form\RedundantEditableConfigNamesTrait;
+class SynonymsSettingsForm extends ConfigFormBase {
+use RedundantEditableConfigNamesTrait;
+}
+</code></pre></div>
+</div>
+
+Note:
+- Once you're using #config_target everywhere the getEditableConfigNames method is pointless
+- Only valid when all the form's config comes through `#config_target` - anything else you save by hand still needs listing
+
+---
+
+### Validation from config schema
+
+★★★★★ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<div><pre class="before" data-since="Drupal 8-10.1"><code class="language-php" data-trim>
+public function validateForm(array &amp;$form, FormStateInterface $form_state) {
+  $weight = $form_state-&gt;getValue('semantic_weight');
+  if ($weight &lt; 0 || $weight &gt; 1) {
+    $form_state-&gt;setErrorByName('semantic_weight', $this-&gt;t('Weight must be between 0 and 1.'));
+  }
+  if (!in_array($form_state-&gt;getValue('search_mode'), ['keyword', 'hybrid'])) {
+    $form_state-&gt;setErrorByName('search_mode', $this-&gt;t('Invalid mode.'));
+  }
+  parent::validateForm($form, $form_state);
+}
+</code></pre></div>
+<div><pre class="after fragment fade-in" data-since="Drupal 10.2+"><code class="language-yaml" data-trim>
+# config/schema/mymodule.schema.yml
+mymodule.settings:
+  type: config_object
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    search_mode:
+      type: string
+      constraints:
+        NotBlank: ~
+        AllowedValues:
+          choices: ['keyword', 'hybrid']
+    semantic_weight:
+      type: float
+      constraints:
+        Range: { min: 0, max: 1 }
+</code></pre></div>
+</div>
+
+Note:
+- Available from: Drupal 10.2.0 for `#config_target` mapping constraint violations back onto form elements; config schema validation constraints themselves arrived earlier (10.x validatable config work)
+- Violations of the property's schema constraints are shown against the matching form element, so there is no `validateForm()` to write
+- The same rules then apply everywhere that config is written: config import, recipes, Drush, the API - not just this form
+- `FullyValidatable` opts the whole config object in; core's ConfigSchemaChecker (dev services) can flag config that is not fully validatable
+- Custom constraints work too
+
+---
+
+### Transforming values: ConfigTarget
+
+★★★☆☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<div><pre class="before" data-since="Drupal 8-10.1"><code class="language-php" data-trim>
+// build: turn the list into lines
+'#default_value' =&gt; implode(
+  "\n",
+  $config-&gt;get('synonyms') ?? []
+),
+// submit: turn the lines back into a list
+$synonyms = array_values(
+  array_filter(
+    array_map(
+      'trim',
+      explode("\n", $form_state-&gt;getValue('synonyms'))),
+));
+$config-&gt;set('synonyms', $synonyms)-&gt;save();
+</code></pre></div>
+<div><pre class="after fragment fade-in" data-since="Drupal 10.2+"><code class="language-php" data-trim>
+'#config_target' =&gt; new ConfigTarget (
+  'mymodule.settings',
+  'synonyms',
+  fromConfig: fn (?array $v) =&gt; implode("\n", $v ?? []),
+  toConfig: fn (string $v) =&gt; array_values(
+      array_filter(array_map('trim', explode("\n", $v)),
+  )),
+),
+</code></pre></div>
+</div>
+
+Note:
+- Available from: Drupal 10.2.0 (ConfigTarget arrived with #3382510)
+
+---
+
+# Test improvements
+
+---
+
+### Kernel tests with their own routes
+
+★★★☆☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<pre class="before" data-since="Drupal 8-11.x"><code class="language-php" data-trim>
+// modules/mymodule_test/mymodule_test.routing.yml
+mymodule_test.page:
+  path: '/mymodule-test'
+  defaults:
+    _controller: '\Drupal\mymodule_test\Controller\TestController::page'
+  requirements:
+    _access: 'TRUE'
+// plus a whole test module
+</code></pre>
+<pre class="after fragment fade-in" data-since="11.5 / 12.0"><code class="language-php" data-trim>
+class MyKernelTest extends KernelTestBase {
+  #[Route(
+    path: '/mymodule-test',
+    name: 'mymodule_test.page',
+    requirements: ['_access' =&gt; 'TRUE'])
+  ]
+  public function page(): array {
+    return ['#markup' =&gt; 'hello'];
+  }
+  public function testPage(): void {
+    $this-&gt;drupalGet('/mymodule-test');
+  }
+}
+</code></pre>
+</div>
+
+Note:
+- Available from: 11.5/12.0
+- Issue #3586832; CR https://www.drupal.org/node/3605544 "Kernel test classes can define their own routes using the Route attribute"
+- Builds on route attributes (#3311365) and drupalGet() in kernel tests (#3390193)
+- Related: functional tests being converted to kernel tests across core for speed
+
+---
+
+### Shared test environment and container
+
+★★★★☆ <!-- .element: class="rating" -->
+
+<div class="two-column">
+<div><pre class="before" data-since="Drupal 8-12.0 alpha"><code class="language-php" data-trim>
+#[Group('node')]
+class NodeTypeValidationTest extends KernelTestBase {
+  // Every test method:
+  //  - installs modules and schema again
+  //  - builds a new container
+  public function testA(): void {}
+  public function testB(): void {}
+}
+</code></pre></div>
+<div><pre class="after fragment fade-in" data-since="main / 12.0"><code class="language-php" data-trim>
+use Drupal\TestTools\Attribute\ShareEnvironment;
+#[Group ('node')]
+#[ShareEnvironment]
+class NodeTypeValidationTest extends KernelTestBase {
+  // Environment built once per class,
+  // container re-used from cache
+  public function testA (): void {}
+  public function testB (): void {}
+}
+</code></pre></div>
+</div>
+
+Note:
+- Available from: 12.0main, committed 2026-10-10 as 6868135abe8 (#3613347 "Re-use container in kernel tests"); builds on #1411074 "Allow kernel tests to share the test environment" (19c7eca36f, 2026-10-06). An 11.x backport (MR !17548) was pending - VERIFY the release before presenting
+- Side effect: the in-memory key/value factory is gone; the `keyvalue` service now comes from the container (backed by the database when the environment is shared)
+- Reported speed-up in the issue: NodeTypeValidationTest (26 tests) 18.9s to 14.7s; per-method cost about 2.5s down to about 0.7s with xhprof on
+- The catch: methods no longer start from a clean environment. Do not assert on absolute IDs or row counts, read IDs from the entities you create, assert on the change your test causes
+- Each test class declares the attribute itself - it is not inherited
+- Rolling the attribute out to all kernel tests in core is in progress
 
 ---
 
@@ -859,52 +1106,15 @@ Note:
 
 ---
 
-### Kernel tests with their own routes
-
-★★★☆☆ <!-- .element: class="rating" -->
-
-<div class="two-column">
-<pre class="before" data-since="Drupal 8-11.x"><code class="language-php" data-trim>
-// modules/mymodule_test/mymodule_test.routing.yml
-mymodule_test.page:
-  path: '/mymodule-test'
-  defaults:
-    _controller: '\Drupal\mymodule_test\Controller\TestController::page'
-  requirements:
-    _access: 'TRUE'
-// plus a whole test module
-</code></pre>
-<pre class="after fragment fade-in" data-since="11.5 / 12.0"><code class="language-php" data-trim>
-class MyKernelTest extends KernelTestBase {
-  #[Route(path: '/mymodule-test', name: 'mymodule_test.page', requirements: ['_access' =&gt; 'TRUE'])]
-  public function page(): array {
-    return ['#markup' =&gt; 'hello'];
-  }
-  public function testPage(): void {
-    $this-&gt;drupalGet('/mymodule-test');
-  }
-}
-</code></pre>
-</div>
-
-Note:
-- Available from: 11.5/12.0
-- Issue #3586832; CR https://www.drupal.org/node/3605544 "Kernel test classes can define their own routes using the Route attribute"
-- Builds on route attributes (#3311365) and drupalGet() in kernel tests (#3390193)
-- Related: functional tests being converted to kernel tests across core for speed
-
----
-
-# RedundantFormTraitThing
-
-#config_target
-validation constraints
-
----
-
-# share environment
-
----
-
 ## Thanks - questions?
 
+Feedback:
+- Reference blog post from Mike
+- Don't squash code down - fix whitespace
+- Drop share environment - drupalGet in kernel tests
+- Take out readonly properties
+- Ways to support D10
+- Light mode
+- Depends on module attribute
+- Defining #AutoWire vs in module for contrib
+- Named arguments policy
