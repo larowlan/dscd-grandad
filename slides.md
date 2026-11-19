@@ -11,7 +11,7 @@ Note:
 ## Who am I?
 <div class="two-column wider">
 <div>
-  <img class='avatar' src="/images/avatar2.jpg">
+  <img class='avatar' src="./images/avatar2.jpg">
 </div>
 <div>
 <br>
