@@ -1,8 +1,10 @@
 ##
 
 Note:
+- 👋 if you're reading this, the notes are a bit naff, watch the video on YT
 - We're going to look at developer QOL improvements
 - Star ratings are subjective: how much nicer is day-to-day life?
+- if you're maintaining custom code I'd say adopt all of this. if you're maintaining contrib and need support for d10/d11.3 might need to be a bit more gradual adoption
 
 ---
 
@@ -49,10 +51,13 @@ function node_user_cancel($edit, UserInterface $account, $method) {
 <pre class="after fragment fade-in" data-since="Drupal 11.1+"><code class="language-php" data-trim>
 namespace Drupal\node\Hook;
 use Drupal\Core\Hook\Attribute\Hook;
+
 class NodeHooks {
+
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
   ) {}
+
   #[Hook('user_cancel')]
   public function userCancel(
     array $edit,
@@ -69,41 +74,8 @@ Note:
 - Available from: before = all versions; after = Drupal 11.1.0
 - Classes in `Drupal\modulename\Hook` are registered as autowired services automatically - constructor injection for free
 - Class and method names are arbitrary; one method can carry several #[Hook] attributes
-- Backwards compat for 10.1-11.0: register the class as a service in services.yml and keep a procedural shim marked #[LegacyHook] that delegates to it
-- From 11.1 the shim is skipped, so one codebase can serve both
+- There is a BC approach if you still need to support D10, but we don't have time to go into that today - and D10 is EOL next month
 - Some hooks stay procedural (install/update); conditionally defined hooks are not supported
-
----
-
-### Supporting < 11.1
-
-<div class="two-column">
-<pre class="before" data-since="Drupal 10.1-11.0"><code class="language-php" data-trim>
-// node.module
-use Drupal\node\Hook\NodeHooks;
-use Drupal\Core\Hook\Attribute\LegacyHook;
-#[LegacyHook]
-function node_user_cancel($edit, UserInterface $account, $method) {
-  \Drupal::service(NodeHooks::class)->userCancel($edit, $account, $method);
-}
-</code></pre>
-<pre class="after" data-since="Drupal 10.1-11.0"><code class="language-php" data-trim>
-// node.services.yml
-parameters:
-  node.skip_procedural_hook_scan: true
-services:
-  Drupal\node\Hook\NodeHooks:
-    autowire: true
-</code></pre>
-</div>
-
-Note:
-- There's a bit going on here, some of it jumps ahead - we'll come back to some things in this services.yml file
-- If you still need to support D10 (not long left!) this is how
-- You leave the old function but just have it call the service
-- You register the hook class (more on autowire later if that's new to you)
-- Adding the #[LegacyHook] attribute tells Drupal not to register the function as a hook in D11.1+ (ie prevents duplicates)
-- If you have replaced all .module file hooks with objects, you can set this parameter that tells the module handler not to even parse the module file on modern Drupal
 
 ---
 
@@ -121,6 +93,7 @@ Note:
 </code></pre>
 <pre class="after fragment fade-in" data-since="Drupal 10.1+"><code class="language-php" data-trim>
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+
 \Drupal::service(EntityTypeManagerInterface::class);
 </code></pre>
 </div>
@@ -184,7 +157,9 @@ services:
 namespace Drupal\mymodule\Some;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
+
 final class Service {
+
   public function __construct(
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     // 👇️️Tricky
@@ -202,7 +177,9 @@ namespace Drupal\mymodule\Some;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+
 final class Service {
+
   public function __construct(
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     // 😎 Nice
@@ -217,6 +194,7 @@ Note:
 - There's a lot of CacheBackendInterface services in core.services.yml
 - Which one did you mean?
 - Use the AutoWire attribute and nominate it _with your code_ not in a random services file
+- Not super friendly to use AutoWire in contrib but for custom code fill your boots
 
 ---
 
@@ -267,6 +245,7 @@ Note:
 <div class="two-column">
 <pre class="before" data-since="Drupal 8-11.2"><code class="language-php" data-trim>
 class MyBlock extends BlockBase implements ContainerFactoryPluginInterface {
+
   public function __construct(
     array $configuration,
     $plugin_id, $plugin_definition,
@@ -276,6 +255,7 @@ class MyBlock extends BlockBase implements ContainerFactoryPluginInterface {
     parent::__construct($configuration, $plugin_id,
      $plugin_definition);
   }
+
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
       $configuration, $plugin_id,
@@ -287,6 +267,7 @@ class MyBlock extends BlockBase implements ContainerFactoryPluginInterface {
 </code></pre>
 <pre class="after fragment fade-in" data-since="Drupal 11.3+"><code class="language-php" data-trim>
 class MyBlock extends BlockBase {
+
   public function __construct(
     array $configuration,
     $plugin_id,
@@ -320,10 +301,12 @@ Note:
 <div class="two-column">
 <pre class="before" data-since="Drupal 8-10.1"><code class="language-php" data-trim>
 class MyController extends ControllerBase {
+
   public function __construct(
       protected Connection $database,
       protected CacheBackendInterface $cache,
   ) {}
+
   public static function create(
     ContainerInterface $container
   ) {
@@ -336,6 +319,7 @@ class MyController extends ControllerBase {
 </code></pre>
 <pre class="after fragment fade-in" data-since="Drupal 10.2+"><code class="language-php" data-trim>
 class MyController extends ControllerBase {
+
   public function __construct(
     protected Connection $database,
     #[Autowire(service: 'cache.default')]
@@ -471,10 +455,12 @@ function mymodule_node_presave($node) {
 <div>
 <pre class="after fragment fade-in" data-since="Drupal 11.1+"><code class="language-php" data-trim>
 class MymoduleHooks {
+
   #[Hook('node_presave')]
   public function nodePresave(NodeInterface $node): void {
     $this-&gt;doThing($node);
   }
+
   protected function doThing(NodeInterface $node): void {
     // moved onto the hook class / a service
   }
@@ -511,10 +497,12 @@ function mytheme_form_system_theme_settings_alter(&amp;$form, $form_state) {
 <pre class="after fragment fade-in" data-since="Drupal 11.3+ (deprecation: 11.5 / 12.0)"><code class="language-php" data-trim>
 namespace Drupal\mytheme\Hook;
 class MythemeHooks {
+
   #[Hook('preprocess_node')]
   public function preprocessNode(array &amp;$variables): void {
     // ...
   }
+
   #[Hook('form_system_theme_settings_alter')]
   public function themeSettingsAlter(array &amp;$form, FormStateInterface $form_state): void {
     // ...
@@ -558,6 +546,7 @@ system.401:
 <pre class="after fragment fade-in" data-since="Drupal 11.4+/12.0*"><code class="language-php" data-trim>
 // src/Controller/Http4xxController.php
 use Drupal\Core\Routing\Attribute\Route;
+
 #[Route(
   path: '/system/401',
   name: 'system.401',
@@ -596,6 +585,7 @@ user.role.settings:
     _permission: 'administer permissions'
 </code></pre>
 <pre class="after fragment fade-in" data-since="Drupal 12.0"><code class="language-php" data-trim>
+
 #[Route(
   path: '/admin/people/role-settings',
   name: 'user.role.settings',
@@ -634,6 +624,7 @@ $batch = (new BatchBuilder ())
 $batch = (new BatchBuilder ())
   -&gt;addOperation ('mymodule.batch:processItem', [$item])
   -&gt;setFinishCallback ([MyBatch::class, 'finished']);
+
 class MyBatch {
   public function processItem ($item, array &amp;$context) {
   // ...
@@ -830,9 +821,11 @@ Note:
 <div class="two-column">
 <div><pre class="before" data-since="Drupal 8-10.1"><code class="language-php" data-trim>
 class SearchModeConfigForm extends ConfigFormBase {
+
   protected function getEditableConfigNames() {
     return ['mymodule.settings'];
   }
+
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this-&gt;config('mymodule.settings');
     $form['decay_enabled'] = [
@@ -842,6 +835,7 @@ class SearchModeConfigForm extends ConfigFormBase {
     ];
     return parent::buildForm($form, $form_state);
   }
+
   public function submitForm(array &amp;$form, FormStateInterface $form_state) {
     $this-&gt;config('mymodule.settings')
       -&gt;set('decay_enabled', $form_state-&gt;getValue('decay_enabled'))
@@ -983,138 +977,13 @@ Note:
 
 ---
 
-# Test improvements
+### Misc improvements
 
----
-
-### Kernel tests with their own routes
-
-★★★☆☆ <!-- .element: class="rating" -->
-
-<div class="two-column">
-<pre class="before" data-since="Drupal 8-11.x"><code class="language-php" data-trim>
-// modules/mymodule_test/mymodule_test.routing.yml
-mymodule_test.page:
-  path: '/mymodule-test'
-  defaults:
-    _controller: '\Drupal\mymodule_test\Controller\TestController::page'
-  requirements:
-    _access: 'TRUE'
-// plus a whole test module
-</code></pre>
-<pre class="after fragment fade-in" data-since="11.5 / 12.0"><code class="language-php" data-trim>
-class MyKernelTest extends KernelTestBase {
-  #[Route(
-    path: '/mymodule-test',
-    name: 'mymodule_test.page',
-    requirements: ['_access' =&gt; 'TRUE'])
-  ]
-  public function page(): array {
-    return ['#markup' =&gt; 'hello'];
-  }
-  public function testPage(): void {
-    $this-&gt;drupalGet('/mymodule-test');
-  }
-}
-</code></pre>
-</div>
-
-Note:
-- Available from: 11.5/12.0
-- Issue #3586832; CR https://www.drupal.org/node/3605544 "Kernel test classes can define their own routes using the Route attribute"
-- Builds on route attributes (#3311365) and drupalGet() in kernel tests (#3390193)
-- Related: functional tests being converted to kernel tests across core for speed
-
----
-
-### Shared test environment and container
-
-★★★★☆ <!-- .element: class="rating" -->
-
-<div class="two-column">
-<div><pre class="before" data-since="Drupal 8-12.0 alpha"><code class="language-php" data-trim>
-#[Group('node')]
-class NodeTypeValidationTest extends KernelTestBase {
-  // Every test method:
-  //  - installs modules and schema again
-  //  - builds a new container
-  public function testA(): void {}
-  public function testB(): void {}
-}
-</code></pre></div>
-<div><pre class="after fragment fade-in" data-since="main / 12.0"><code class="language-php" data-trim>
-use Drupal\TestTools\Attribute\ShareEnvironment;
-#[Group ('node')]
-#[ShareEnvironment]
-class NodeTypeValidationTest extends KernelTestBase {
-  // Environment built once per class,
-  // container re-used from cache
-  public function testA (): void {}
-  public function testB (): void {}
-}
-</code></pre></div>
-</div>
-
-Note:
-- Available from: 12.0main, committed 2026-10-10 as 6868135abe8 (#3613347 "Re-use container in kernel tests"); builds on #1411074 "Allow kernel tests to share the test environment" (19c7eca36f, 2026-10-06). An 11.x backport (MR !17548) was pending - VERIFY the release before presenting
-- Side effect: the in-memory key/value factory is gone; the `keyvalue` service now comes from the container (backed by the database when the environment is shared)
-- Reported speed-up in the issue: NodeTypeValidationTest (26 tests) 18.9s to 14.7s; per-method cost about 2.5s down to about 0.7s with xhprof on
-- The catch: methods no longer start from a clean environment. Do not assert on absolute IDs or row counts, read IDs from the entities you create, assert on the change your test causes
-- Each test class declares the attribute itself - it is not inherited
-- Rolling the attribute out to all kernel tests in core is in progress
-
----
-
-## Honourable mentions
-
-Note:
-- Not strictly "code you write every day", but they change how you build sites
-
----
-
-### Recipes in install profiles
-
-★★★★☆ <!-- .element: class="rating" -->
-
-<div class="two-column">
-<pre class="before" data-since="Drupal 10.3-11.4"><code class="language-yaml" data-trim>
-# mysite.info.yml
-type: profile
-name: My site
-install:
-  - node
-  - views
-  - mymodule
-# plus a hook_install() that
-# creates content types and config
-</code></pre>
-<pre class="after fragment fade-in" data-since="Drupal 11.5+"><code class="language-yaml" data-trim>
-# mysite.info.yml
-type: profile
-name: My site
-recipes:
-  - some/recipe/mysite_content_types
-  - some/recipe/mysite_editor_roles
-</code></pre>
-</div>
-
-Note:
-- Available from: recipes = Drupal 10.3.0; `recipes` key in profile info.yml = 11.5.0 (merged 2026-07-21)
-- Issue #3605549; CR https://www.drupal.org/node/3612237
-- Recipes run after modules are installed, appended to the same batch
-- Also: recipe discovery helper class (#3446354, main), profiles apply recipes while Standard/Umami are being slimmed down onto recipes
+* Tests with their own routes     <!-- .element: class="fragment fade-in" -->
+* ShareEnvironment                <!-- .element: class="fragment fade-in" -->
+* drupalGet in kernel tests       <!-- .element: class="fragment fade-in" -->
+* Recipes in install profiles     <!-- .element: class="fragment fade-in" -->
 
 ---
 
 ## Thanks - questions?
-
-Feedback:
-- Reference blog post from Mike
-- Don't squash code down - fix whitespace
-- Drop share environment - drupalGet in kernel tests
-- Take out readonly properties
-- Ways to support D10
-- Light mode
-- Depends on module attribute
-- Defining #AutoWire vs in module for contrib
-- Named arguments policy
